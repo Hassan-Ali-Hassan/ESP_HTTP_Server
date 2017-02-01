@@ -6,6 +6,8 @@ ESP8266WebServer server(80);
 MDNSResponder mdns;
 char* ssid = "AeroStaff-4";
 char* password = "stewart2";
+int position[6] = {2,84,756,52,4,78}; //the array containing the x and y positions of all rover
+int INDEX = 0; //which is the index of the robot itself, not that of the entry in the array
 void setup() 
 {
   Serial.begin(115200);
@@ -25,6 +27,7 @@ void setup()
   /*adding routes to our webserver*/
   server.on("/test",echo);
   server.on("/test2",echo2);
+  server.on("/position",managePositions);
   server.begin();
 
   MDNS.addService("http","tcp",80);
@@ -55,3 +58,66 @@ void echo2()
   server.send(200,"text/plain","hello man!!"+String(counter)); //this is the response the clients should receive when they send this request
 //  Serial.println("I have received a message from somewhere");
 }
+
+void managePositions()
+{
+  static int counter = 0;
+  counter++;
+  String response = "#";
+  String p1 = server.arg("p1");
+  String p2 = server.arg("p2");
+  String p3 = server.arg("p3");
+  String I = server.arg("index");
+  String UP = server.arg("up"); //stands for update position
+
+  if(p1.length() > 0)
+  {
+    response += String(position[0])+","+String(position[1])+"#";
+  }
+  if(p2.length() > 0)
+  {
+    response += String(position[2])+","+String(position[3])+"#";
+  }
+  if(p3.length() > 0)
+  {
+    response += String(position[4])+","+String(position[5])+"#";
+  }
+  if(I.length() > 0)
+  {
+    INDEX = I.toInt();
+  }
+  if(UP.length() > 0)
+  {
+    updatePosition(UP);
+  }
+  server.send(200,"text/plain",response); 
+}
+
+void updatePosition(String msg)
+{
+  const int bufferSize = 10;
+  int i = 0;
+  int index = 0;
+  int L = msg.length();
+  int value[2] = {0,0};
+  String container;
+  char buffer[bufferSize];
+  msg.toCharArray(buffer,bufferSize);
+  for(i = 0; i < L; i++)
+  {
+    if(buffer[i] != ',')
+    {
+      container += buffer[i];
+    }
+    else
+    {
+      value[index] = container.toInt();
+      container = "";
+      index++;
+    }
+  }
+  value[index] = container.toInt();
+  position[2*(INDEX-1)] = value[0];
+  position[2*(INDEX-1)+1] = value[1];
+}
+
